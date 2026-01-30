@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>後台設定 - 獅子會抽獎系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f3f4f6; }
+        .btn { transition: all 0.2s; }
+        .btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-4">⚙️ 抽獎後台設定</h1>
+        
+        <div id="statusBox" class="hidden mb-4 p-4 rounded bg-blue-100 text-blue-800"></div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 font-bold mb-2">1. 設定抽獎券號碼</label>
+            <p class="text-sm text-gray-500 mb-2">支援格式：單號 (001), 連號 (100-150)。請用逗號或換行分隔。</p>
+            <textarea id="ticketInput" rows="6" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-lg" placeholder="例如：
+001, 002, 005
+100-150
+200-220"></textarea>
+            <div class="mt-2 flex gap-2">
+                <button onclick="fillExample()" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">填入範例</button>
+                <span id="countPreview" class="text-sm text-blue-600 self-center font-bold"></span>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <button onclick="saveTickets()" class="btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg text-xl shadow-md">
+                💾 儲存並重置系統
+            </button>
+            <p class="text-xs text-red-500 mt-2 text-center">*警告：此動作會清空舊的中獎紀錄（系統會自動備份到 Google Sheet）</p>
+        </div>
+
+        <hr class="my-8">
+
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">功能測試</h2>
+            <a href="index.html" target="_blank" class="text-blue-600 underline mr-4">前往抽獎頁 (Index)</a>
+            <a href="dashboard.html" target="_blank" class="text-blue-600 underline mr-4">前往總覽頁 (Dashboard)</a>
+            <a href="lucky.html" target="_blank" class="text-blue-600 underline">前往大獎特效頁 (Lucky)</a>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxyVjbMXrydCLsQLdqNLT2a_CtxEfV07d-wSMmSiL1AwNL7Z-VQaB1Wp5gmwdPWy6XA/exec";
+        const PASSWORD = "8888"; // 簡易鎖
+
+        // 檢查密碼
+        window.onload = function() {
+            let input = prompt("請輸入管理員密碼：");
+            if (input !== PASSWORD) {
+                alert("密碼錯誤");
+                document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>無權限存取</h1>";
+            }
+        };
+
+        function fillExample() {
+            document.getElementById('ticketInput').value = "001-090,\n101-110,\n888, 999";
+            updateCount();
+        }
+
+        // 解析號碼邏輯
+        function parseTickets(text) {
+            let tickets = [];
+            // 移除空白，統一分隔符
+            let parts = text.replace(/\n/g, ',').split(',');
+            
+            parts.forEach(part => {
+                part = part.trim();
+                if (!part) return;
+                
+                if (part.includes('-')) {
+                    let range = part.split('-');
+                    let start = parseInt(range[0]);
+                    let end = parseInt(range[1]);
+                    // 保持前導零格式 (例如 001)
+                    let padLen = range[0].length; 
+                    if (!isNaN(start) && !isNaN(end) && end >= start) {
+                        for (let i = start; i <= end; i++) {
+                            tickets.push(String(i).padStart(padLen, '0'));
+                        }
+                    }
+                } else {
+                    tickets.push(part);
+                }
+            });
+            return tickets;
+        }
+
+        document.getElementById('ticketInput').addEventListener('input', updateCount);
+
+        function updateCount() {
+            let list = parseTickets(document.getElementById('ticketInput').value);
+            document.getElementById('countPreview').innerText = `預計產生 ${list.length} 張抽獎券`;
+        }
+
+        function saveTickets() {
+            if (!confirm("Master，確定要重置系統嗎？所有舊的中獎名單將被清空（但會備份）。")) return;
+
+            const tickets = parseTickets(document.getElementById('ticketInput').value);
+            if (tickets.length === 0) {
+                alert("請至少輸入一組號碼");
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="saveTickets()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "處理中...";
+            btn.disabled = true;
+
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'setupTickets', tickets: tickets })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            })
+            .catch(err => {
+                alert("發生錯誤：" + err);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

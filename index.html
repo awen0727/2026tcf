@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現場抽獎 - 獅子會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
+        body { 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            background: radial-gradient(circle, #8b0000 0%, #300000 100%);
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .lucky-num {
+            font-family: 'Oswald', sans-serif;
+            font-size: 18rem; /* 超大字體 */
+            text-shadow: 0 0 20px #ffd700;
+            color: #fff;
+            line-height: 1;
+        }
+        .prize-btn {
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            background: rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+        .prize-btn.active {
+            background: #ffd700;
+            color: #8b0000;
+            box-shadow: 0 0 15px #ffd700;
+            font-weight: bold;
+        }
+        /* 遮罩層 */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 99;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay" onclick="unlockAudio()">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold mb-4 text-yellow-400">點擊畫面開始抽獎活動</h1>
+            <p class="text-xl text-gray-300">啟動音效與語音引擎</p>
+        </div>
+    </div>
+
+    <div class="w-full p-4 flex gap-4 justify-center flex-wrap z-10 bg-black/20 backdrop-blur-sm">
+        <button onclick="setPrize('500元獎', this)" class="prize-btn active px-6 py-2 rounded-full text-xl">500元</button>
+        <button onclick="setPrize('1000元獎', this)" class="prize-btn px-6 py-2 rounded-full text-xl">1000元</button>
+        <button onclick="setPrize('10000元大獎', this)" class="prize-btn px-6 py-2 rounded-full text-xl border-red-500 text-red-300">10000元</button>
+        <button onclick="inputCustomPrize(this)" class="prize-btn px-6 py-2 rounded-full text-xl">➕ 加碼獎</button>
+    </div>
+
+    <div class="flex-grow flex flex-col justify-center items-center w-full">
+        <div class="text-3xl text-yellow-400 mb-4 tracking-widest" id="currentPrizeLabel">正在抽出：500元獎</div>
+        <div id="displayNum" class="lucky-num">000</div>
+    </div>
+
+    <div class="w-full p-8 flex justify-center pb-12">
+        <button id="drawBtn" onclick="startDraw()" class="bg-gradient-to-t from-yellow-600 to-yellow-400 hover:from-yellow-500 hover:to-yellow-300 text-red-900 font-black text-5xl px-20 py-6 rounded-2xl shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+            開始抽獎
+        </button>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxyVjbMXrydCLsQLdqNLT2a_CtxEfV07d-wSMmSiL1AwNL7Z-VQaB1Wp5gmwdPWy6XA/exec";
+        let currentPrize = "500元獎";
+        let isRolling = false;
+        let animationId;
+        
+        // 音效與語音
+        function unlockAudio() {
+            document.getElementById('overlay').style.display = 'none';
+            // 嘗試播放一個無聲片段來解鎖 mobile safari 的音效限制
+            const speech = new SpeechSynthesisUtterance("系統就緒");
+            window.speechSynthesis.speak(speech);
+        }
+
+        function setPrize(name, btn) {
+            if (isRolling) return;
+            currentPrize = name;
+            document.getElementById('currentPrizeLabel').innerText = "正在抽出：" + name;
+            
+            // UI 更新
+            document.querySelectorAll('.prize-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        }
+
+        function inputCustomPrize(btn) {
+            if (isRolling) return;
+            const name = prompt("請輸入加碼獎項名稱：", "會長加碼現金");
+            if (name) {
+                setPrize(name, btn);
+            }
+        }
+
+        function startDraw() {
+            if (isRolling) return;
+            
+            const btn = document.getElementById('drawBtn');
+            const display = document.getElementById('displayNum');
+            
+            isRolling = true;
+            btn.disabled = true;
+            btn.innerText = "抽獎中...";
+
+            // 1. 開始滾動動畫
+            let counter = 0;
+            const runAnimation = () => {
+                display.innerText = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+                animationId = requestAnimationFrame(runAnimation);
+            };
+            runAnimation();
+
+            // 2. 呼叫後端 API
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'draw', prizeName: currentPrize })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // 收到資料，停止動畫
+                cancelAnimationFrame(animationId);
+                
+                if (data.result === 'success') {
+                    // 減速特效 (模擬停下來的感覺)
+                    slowDownEffect(data.winner, () => {
+                        // 最終停止
+                        display.innerText = data.winner;
+                        // 語音朗讀
+                        speakWinner(data.winner);
+                        
+                        btn.disabled = false;
+                        btn.innerText = "開始抽獎";
+                        isRolling = false;
+                    });
+                } else {
+                    display.innerText = "---";
+                    alert(data.message); // 例如：獎項抽完了
+                    btn.disabled = false;
+                    btn.innerText = "開始抽獎";
+                    isRolling = false;
+                }
+            })
+            .catch(err => {
+                cancelAnimationFrame(animationId);
+                alert("連線錯誤：" + err);
+                btn.disabled = false;
+                isRolling = false;
+            });
+        }
+
+        function slowDownEffect(finalNum, callback) {
+            const display = document.getElementById('displayNum');
+            let i = 0;
+            let speed = 50;
+            
+            function step() {
+                // 隨機跳幾個數字
+                display.innerText = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+                i++;
+                if (i < 10) {
+                    setTimeout(step, speed);
+                    speed += 30; // 越來越慢
+                } else {
+                    callback();
+                }
+            }
+            step();
+        }
+
+        function speakWinner(num) {
+            // 將號碼拆開唸，例如 088 -> 零、八、八
+            const text = `恭喜，${num.split('').join('，')}號，獲得${currentPrize}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>

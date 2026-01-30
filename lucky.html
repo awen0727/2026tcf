@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS 大獎特效</title>
+    <style>
+        /* OBS Chroma Key 綠色背景 */
+        body { 
+            background-color: #00b140; 
+            margin: 0; padding: 0; 
+            overflow: hidden; 
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+        }
+        
+        /* 一般輪播樣式 */
+        .carousel {
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #fff; padding: 20px; border-radius: 10px;
+            font-size: 24px; border: 2px solid gold;
+        }
+
+        /* 彈出特效樣式 */
+        #popup {
+            display: none;
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .big-title {
+            font-size: 80px; color: #ffd700; 
+            text-shadow: 4px 4px 0 #8b0000;
+            font-weight: 900; margin: 0;
+        }
+        .big-num {
+            font-size: 180px; color: #fff;
+            text-shadow: 0 0 20px #ff0000;
+            font-weight: bold; margin: 0; line-height: 1;
+        }
+        
+        /* 簡單煙火粒子 (CSS only) */
+        .firework {
+            position: absolute; width: 10px; height: 10px; background: gold;
+            border-radius: 50%; animation: explode 1s ease-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="popup">
+        <h1 class="big-title" id="prizeName">10000元大獎</h1>
+        <p class="big-num" id="winnerNum">088</p>
+        <p style="color:white; font-size:30px; margin-top:20px;">恭喜獲獎！</p>
+    </div>
+
+    <div id="carousel" class="carousel" style="display:none;">
+        <span id="carouselText">最新中獎：...</span>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxyVjbMXrydCLsQLdqNLT2a_CtxEfV07d-wSMmSiL1AwNL7Z-VQaB1Wp5gmwdPWy6XA/exec";
+        let lastWinnerTime = "";
+        let isAnimating = false;
+
+        // 每 3 秒檢查一次
+        setInterval(checkNewWinner, 3000);
+
+        function checkNewWinner() {
+            fetch(API_URL + "?op=getData")
+            .then(res => res.json())
+            .then(data => {
+                if(data.length === 0) return;
+
+                const latest = data[0]; // 陣列已經反轉，0 是最新的
+                
+                // 如果發現比上次更新的時間還新的資料
+                // 且獎項包含 "10000" 或 "加碼" 字眼
+                if (latest.time !== lastWinnerTime) {
+                    lastWinnerTime = latest.time;
+                    
+                    if (isBigPrize(latest.prize)) {
+                        triggerEffect(latest.prize, latest.num);
+                    }
+                    updateCarousel(data);
+                }
+            });
+        }
+
+        function isBigPrize(name) {
+            return name.includes("10000") || name.includes("加碼") || name.includes("大獎");
+        }
+
+        function triggerEffect(prize, num) {
+            isAnimating = true;
+            const popup = document.getElementById('popup');
+            const carousel = document.getElementById('carousel');
+            
+            // 設定內容
+            document.getElementById('prizeName').innerText = prize;
+            document.getElementById('winnerNum').innerText = num;
+
+            // 顯示特效，隱藏輪播
+            carousel.style.display = 'none';
+            popup.style.display = 'block';
+
+            // 10秒後自動關閉特效，切回輪播
+            setTimeout(() => {
+                popup.style.display = 'none';
+                carousel.style.display = 'block';
+                isAnimating = false;
+            }, 10000);
+        }
+
+        function updateCarousel(data) {
+            if(isAnimating) return;
+            // 簡單輪播顯示最近三位大獎得主
+            const bigWinners = data.filter(d => isBigPrize(d.prize)).slice(0, 3);
+            if(bigWinners.length > 0) {
+                const text = bigWinners.map(w => `${w.prize}: ${w.num}號`).join(" | ");
+                document.getElementById('carouselText').innerText = "🏆 榮譽榜: " + text;
+                document.getElementById('carousel').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
