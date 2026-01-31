@@ -3,129 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS 大獎特效</title>
+    <title>直播特效頁 - 獅子會抽獎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* OBS Chroma Key 綠色背景 */
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
+        
+        /* OBS 綠幕背景 */
         body { 
             background-color: #00b140; 
-            margin: 0; padding: 0; 
-            overflow: hidden; 
             font-family: "Microsoft JhengHei", sans-serif;
-            display: flex; justify-content: center; align-items: center; height: 100vh;
-        }
-        
-        /* 一般輪播樣式 */
-        .carousel {
-            position: absolute; bottom: 20px; right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: #fff; padding: 20px; border-radius: 10px;
-            font-size: 24px; border: 2px solid gold;
+            overflow: hidden; 
+            height: 100vh;
         }
 
-        /* 彈出特效樣式 */
-        #popup {
-            display: none;
-            text-align: center;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn {
-            from { transform: scale(0); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .big-title {
-            font-size: 80px; color: #ffd700; 
-            text-shadow: 4px 4px 0 #8b0000;
-            font-weight: 900; margin: 0;
-        }
+        /* 左側大數字特效 */
         .big-num {
-            font-size: 180px; color: #fff;
-            text-shadow: 0 0 20px #ff0000;
-            font-weight: bold; margin: 0; line-height: 1;
+            font-family: 'Oswald', sans-serif;
+            font-size: 10rem;
+            color: #fff;
+            text-shadow: 4px 4px 0 #000;
+            line-height: 1;
         }
-        
-        /* 簡單煙火粒子 (CSS only) */
-        .firework {
-            position: absolute; width: 10px; height: 10px; background: gold;
-            border-radius: 50%; animation: explode 1s ease-out infinite;
+        .prize-title {
+            color: #ffd700;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* 右側列表樣式 */
+        .list-container {
+            background: rgba(0, 0, 0, 0.6); /* 半透明黑底，方便閱讀 */
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .list-header {
+            background: #8b0000;
+            color: white;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid gold;
+        }
+        .list-body {
+            overflow-y: auto;
+            padding: 10px;
+            flex-grow: 1;
+        }
+        /* 隱藏捲軸但保留功能 */
+        .list-body::-webkit-scrollbar { width: 0px; }
+
+        /* 單筆名單卡片 */
+        .winner-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+        .w-prize { color: #8b0000; font-weight: bold; font-size: 1.2rem; }
+        .w-num { font-family: 'Oswald', sans-serif; font-size: 1.5rem; color: #000; }
+        .w-time { font-size: 0.8rem; color: #666; }
+
+        @keyframes slideIn {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
-<body>
+<body class="p-10 flex gap-10 items-center justify-center">
 
-    <div id="popup">
-        <h1 class="big-title" id="prizeName">10000元大獎</h1>
-        <p class="big-num" id="winnerNum">088</p>
-        <p style="color:white; font-size:30px; margin-top:20px;">恭喜獲獎！</p>
+    <div class="w-2/3 flex flex-col justify-center items-center text-center">
+        <div class="bg-black/20 p-10 rounded-3xl backdrop-blur-sm border border-white/20 shadow-2xl">
+            <div class="text-white text-2xl mb-2 opacity-80">Latest Winner</div>
+            <div id="latestPrize" class="prize-title">等待開獎...</div>
+            <div id="latestNum" class="big-num">------</div>
+            <div id="latestTime" class="text-white mt-4 text-xl"></div>
+        </div>
     </div>
 
-    <div id="carousel" class="carousel" style="display:none;">
-        <span id="carouselText">最新中獎：...</span>
+    <div class="w-1/3">
+        <div class="list-container">
+            <div class="list-header">🏆 中獎榮譽榜</div>
+            <div id="winnerList" class="list-body">
+                </div>
+        </div>
     </div>
 
     <script>
+        // 使用您最新的 V2.0 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
-        let lastWinnerTime = "";
-        let isAnimating = false;
+        
+        let lastDataLength = 0; // 用來偵測有沒有新資料
 
-        // 每 3 秒檢查一次
-        setInterval(checkNewWinner, 3000);
+        // 每 3 秒自動更新一次
+        setInterval(updateData, 3000);
+        updateData(); // 頁面載入時先執行一次
 
-        function checkNewWinner() {
-            fetch(API_URL + "?op=getData")
-            .then(res => res.json())
-            .then(data => {
-                if(data.length === 0) return;
+        async function updateData() {
+            try {
+                // 使用 op=getData 參數抓取所有中獎名單
+                const res = await fetch(API_URL + '?op=getData');
+                const data = await res.json();
 
-                const latest = data[0]; // 陣列已經反轉，0 是最新的
-                
-                // 如果發現比上次更新的時間還新的資料
-                // 且獎項包含 "10000" 或 "加碼" 字眼
-                if (latest.time !== lastWinnerTime) {
-                    lastWinnerTime = latest.time;
-                    
-                    if (isBigPrize(latest.prize)) {
-                        triggerEffect(latest.prize, latest.num);
-                    }
-                    updateCarousel(data);
+                if (!Array.isArray(data) || data.length === 0) return;
+
+                // 更新左側大字 (最新的那一筆)
+                const latest = data[0]; // 因為後端已經排過序，第0筆就是最新的
+                document.getElementById('latestPrize').innerText = latest.prize;
+                document.getElementById('latestNum').innerText = latest.num;
+                document.getElementById('latestTime').innerText = `開獎時間: ${latest.time}`;
+
+                // 如果資料變多了，代表有新中獎者，重新渲染列表
+                if (data.length !== lastDataLength) {
+                    renderList(data);
+                    lastDataLength = data.length;
                 }
-            });
-        }
 
-        function isBigPrize(name) {
-            return name.includes("10000") || name.includes("加碼") || name.includes("大獎");
-        }
-
-        function triggerEffect(prize, num) {
-            isAnimating = true;
-            const popup = document.getElementById('popup');
-            const carousel = document.getElementById('carousel');
-            
-            // 設定內容
-            document.getElementById('prizeName').innerText = prize;
-            document.getElementById('winnerNum').innerText = num;
-
-            // 顯示特效，隱藏輪播
-            carousel.style.display = 'none';
-            popup.style.display = 'block';
-
-            // 10秒後自動關閉特效，切回輪播
-            setTimeout(() => {
-                popup.style.display = 'none';
-                carousel.style.display = 'block';
-                isAnimating = false;
-            }, 10000);
-        }
-
-        function updateCarousel(data) {
-            if(isAnimating) return;
-            // 簡單輪播顯示最近三位大獎得主
-            const bigWinners = data.filter(d => isBigPrize(d.prize)).slice(0, 3);
-            if(bigWinners.length > 0) {
-                const text = bigWinners.map(w => `${w.prize}: ${w.num}號`).join(" | ");
-                document.getElementById('carouselText').innerText = "🏆 榮譽榜: " + text;
-                document.getElementById('carousel').style.display = 'block';
+            } catch (err) {
+                console.error("更新失敗", err);
             }
+        }
+
+        function renderList(data) {
+            const list = document.getElementById('winnerList');
+            list.innerHTML = ""; // 清空舊的
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'winner-card';
+                div.innerHTML = `
+                    <div>
+                        <div class="w-prize">${item.prize}</div>
+                        <div class="w-time">${item.time}</div>
+                    </div>
+                    <div class="w-num">${item.num}</div>
+                `;
+                list.appendChild(div);
+            });
         }
     </script>
 </body>
