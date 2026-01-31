@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V6.3</title>
+    <title>活動看板 V6.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -39,14 +39,14 @@
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 單抽大數字 */
+        /* 大獎號碼 (霸氣顯示) */
         .big-number {
             font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
             text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 批量訊息 */
+        /* 普獎賀詞 (隱藏號碼) */
         .batch-msg {
             font-size: 5rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.4); padding: 30px 80px; border-radius: 20px;
@@ -67,7 +67,7 @@
     </style>
 </head>
 <body>
-    <div class="version">System V6.3 (Keyword Force)</div>
+    <div class="version">System V6.4 (10K Fixed)</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -77,65 +77,5 @@
     </div>
 
     <script>
-        // 您的後台網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbxwEld6cddUmHShvDNOuZxqeJCIsjxPNwWHdjJovk2OA2nK2yv8LRDelvqqxXcj1BGh/exec";
-        
-        let lastUpdateKey = ""; 
-
-        setInterval(checkLatest, 1500);
-
-        async function checkLatest() {
-            try {
-                const res = await fetch(API_URL + '?op=getLatest');
-                const data = await res.json();
-
-                if (Array.isArray(data)) {
-                    document.getElementById('contentArea').innerHTML = `<div class="error-msg">⚠️ 後台版本過舊</div>`;
-                    return;
-                }
-
-                if (data.status === 'empty' || data.status === 'waiting') return;
-
-                const currentKey = data.timestamp + data.prize;
-
-                if (currentKey !== lastUpdateKey) {
-                    render(data);
-                    lastUpdateKey = currentKey;
-                }
-
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function render(data) {
-            const title = document.getElementById('prizeTitle');
-            const content = document.getElementById('contentArea');
-            
-            title.innerText = data.prize;
-            content.innerHTML = "";
-
-            // ★ V6.3 關鍵修正：關鍵字強制過濾
-            // 只要獎項名稱含有這些字，一律視為「多人獎項」，強制隱藏號碼
-            const forceBatchKeywords = ["500", "1000", "3000", "5000", "90名", "10名", "3名", "2名"];
-            
-            // 判斷是否為批量模式： (人數 > 1) 或者 (包含關鍵字)
-            const isBatchMode = data.count > 1 || forceBatchKeywords.some(keyword => data.prize.includes(keyword));
-
-            if (isBatchMode) {
-                // 批量模式：只顯示「恭喜獲獎」
-                content.innerHTML = `
-                    <div class="batch-msg">🎉 恭喜獲獎</div>
-                    <div class="sub-text">名單已同步至總覽看板</div>
-                `;
-            } else {
-                // 單人模式：顯示大號碼
-                content.innerHTML = `
-                    <div class="big-number">${data.num}</div>
-                    <div class="sub-text">🎉 恭喜中獎</div>
-                `;
-            }
-        }
-    </script>
-</body>
-</html>
+        // 您的後台網址 (V6.1 Time-Sorted)
+        const API_URL = "
