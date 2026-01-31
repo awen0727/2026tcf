@@ -8,9 +8,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
         
-        /* OBS 綠幕背景 */
         body { 
-            background-color: #00b140; 
+            background-color: #00b140; /* OBS 綠幕 */
             font-family: "Microsoft JhengHei", sans-serif;
             overflow: hidden; 
             height: 100vh;
@@ -19,9 +18,9 @@
             gap: 20px;
         }
 
-        /* 左側：主舞台 (顯示最新那一批結果) */
+        /* 左側：主舞台 */
         .main-stage {
-            flex: 3; /* 佔據 3/4 空間 */
+            flex: 3;
             background: rgba(0, 0, 0, 0.8);
             border: 4px solid #ffd700;
             border-radius: 20px;
@@ -85,7 +84,7 @@
 
         /* 右側：歷史側邊欄 */
         .sidebar {
-            flex: 1; /* 佔據 1/4 空間 */
+            flex: 1;
             background: rgba(0, 0, 0, 0.6);
             border-radius: 15px;
             border: 2px solid rgba(255, 255, 255, 0.3);
@@ -121,77 +120,4 @@
         ::-webkit-scrollbar { width: 0px; }
 
         @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    </style>
-</head>
-<body>
-
-    <div class="main-stage">
-        <div id="stageTitle" class="stage-header">等待開獎...</div>
-        <div id="stageContent" class="stage-content">
-            <div class="text-gray-400 text-2xl">系統連線中...</div>
-        </div>
-    </div>
-
-    <div class="sidebar">
-        <div class="sidebar-header">📜 近期紀錄</div>
-        <div id="historyList" class="sidebar-list">
-            </div>
-    </div>
-
-    <script>
-        // V2.0 新網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
-        
-        let lastUpdateTime = ""; 
-
-        // 每 2 秒更新一次
-        setInterval(updateData, 2000);
-        updateData();
-
-        async function updateData() {
-            try {
-                const res = await fetch(API_URL + '?op=getData');
-                const data = await res.json();
-
-                if (!Array.isArray(data) || data.length === 0) return;
-
-                // 1. 找出「最新一批」的中獎者 (依據時間判斷)
-                const latestTime = data[0].time;
-                const latestPrize = data[0].prize;
-                
-                // 篩選出所有時間跟最新一筆相同的人 (視為同一批次)
-                // 這裡稍微寬容一點，如果時間只差 1-2 秒也算同一批
-                const currentBatch = data.filter(item => item.time === latestTime && item.prize === latestPrize);
-                
-                // 剩下的就是歷史紀錄
-                const historyData = data.slice(currentBatch.length);
-
-                // 2. 更新主舞台 (只有當資料有變動時才重繪，避免一直閃爍)
-                if (latestTime !== lastUpdateTime) {
-                    renderStage(latestPrize, currentBatch);
-                    lastUpdateTime = latestTime;
-                }
-
-                // 3. 永遠更新側邊欄 (保持最新)
-                renderSidebar(historyData);
-
-            } catch (err) {
-                console.error("更新失敗", err);
-            }
-        }
-
-        function renderStage(prizeName, winners) {
-            const title = document.getElementById('stageTitle');
-            const content = document.getElementById('stageContent');
-            
-            title.innerText = `${prizeName} (共${winners.length}名)`;
-            content.innerHTML = "";
-
-            if (winners.length === 1) {
-                // 單人模式：顯示超大數字
-                const div = document.createElement('div');
-                div.className = 'single-winner';
-                div.innerText = winners[0].num;
-                content.appendChild(div);
-            } else {
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity:
