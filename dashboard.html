@@ -3,123 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中獎名單總覽</title>
+    <title>即時中獎名單</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; background: #f8f9fa; padding-top: 80px;}
-        .highlight { animation: pulse 2s infinite; background-color: #fff3cd; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
-    </style>
 </head>
-<body>
-
-    <div class="fixed top-0 left-0 w-full bg-red-800 text-white p-4 shadow-lg z-50 flex justify-between items-center">
-        <div class="flex items-center gap-4 w-full max-w-2xl">
-            <h1 class="text-xl font-bold whitespace-nowrap hidden md:block">🦁 獅子會抽獎看板</h1>
-            <input type="text" id="searchInput" onkeyup="searchNum()" placeholder="🔍 輸入號碼查詢 (例如 088)..." 
-                   class="w-full p-2 rounded text-gray-900 font-bold text-lg outline-none focus:ring-2 focus:ring-yellow-400">
+<body class="bg-gray-100 p-4">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="bg-red-800 text-white p-4 text-center">
+            <h1 class="text-2xl font-bold">中獎榮譽榜</h1>
+            <p class="text-sm opacity-80 mt-1">即時更新</p>
         </div>
-        <div id="qrcode" class="hidden md:block bg-white p-1 rounded"></div>
-    </div>
-
-    <div class="container mx-auto p-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
-            <div class="bg-white p-4 rounded shadow">
-                <p class="text-gray-500">已抽出總數</p>
-                <p class="text-2xl font-bold text-red-600" id="totalCount">0</p>
-            </div>
-            <div class="bg-white p-4 rounded shadow">
-                <p class="text-gray-500">最近更新</p>
-                <p class="text-lg font-mono" id="lastUpdate">--:--</p>
-            </div>
+        
+        <div class="p-4 border-b">
+            <input type="text" id="searchInput" onkeyup="filterData()" placeholder="搜尋號碼..." class="w-full border p-2 rounded text-lg text-center">
         </div>
 
-        <div class="bg-white rounded shadow overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-100 border-b">
-                    <tr>
-                        <th class="p-4 text-gray-600">中獎號碼</th>
-                        <th class="p-4 text-gray-600">獎項</th>
-                        <th class="p-4 text-gray-600 hidden md:table-cell">時間</th>
-                    </tr>
-                </thead>
-                <tbody id="listBody">
-                    <tr><td colspan="3" class="p-4 text-center text-gray-400">載入中...</td></tr>
-                </tbody>
-            </table>
+        <div id="list" class="divide-y max-h-[70vh] overflow-y-auto">
+            <div class="p-4 text-center text-gray-500">載入中...</div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
+        // ★ 新網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbyLlMC7-SnKwSkVic246tHXjyFFaxZLSKHM9Z_cyi-KONKKpStAJ_0zLC7dsEUd9tYz/exec";
         
-        // 生成 QR Code
-        new QRCode(document.getElementById("qrcode"), {
-            text: window.location.href,
-            width: 50,
-            height: 50
-        });
-
-        // 定期更新
-        setInterval(fetchData, 5000);
-        fetchData();
-
         let allWinners = [];
 
-        function fetchData() {
-            fetch(API_URL + "?op=getData")
-            .then(res => res.json())
-            .then(data => {
-                allWinners = data;
-                renderTable(data);
-                document.getElementById('totalCount').innerText = data.length;
-                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString();
-                
-                // 如果搜尋欄有字，重新篩選
-                const searchVal = document.getElementById('searchInput').value;
-                if(searchVal) searchNum();
-            });
+        // Dashboard 繼續使用 getData 模式
+        function loadData() {
+            fetch(API_URL + '?op=getData')
+                .then(res => res.json())
+                .then(data => {
+                    allWinners = data;
+                    renderList(data);
+                });
         }
 
-        function renderTable(data) {
-            const tbody = document.getElementById('listBody');
-            if(data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center">目前尚未有中獎者</td></tr>';
+        function renderList(data) {
+            const list = document.getElementById('list');
+            list.innerHTML = "";
+            if (data.length === 0) {
+                list.innerHTML = "<div class='p-4 text-center text-gray-500'>目前尚未開出獎項</div>";
                 return;
             }
-
-            let html = '';
-            data.forEach(row => {
-                html += `
-                    <tr class="border-b hover:bg-gray-50 search-item" data-num="${row.num}">
-                        <td class="p-4 font-bold text-2xl text-red-600 font-mono">${row.num}</td>
-                        <td class="p-4 font-bold text-lg">${row.prize}</td>
-                        <td class="p-4 text-gray-400 text-sm hidden md:table-cell">${row.time.substring(0,8)}</td>
-                    </tr>
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-3 flex justify-between items-center hover:bg-red-50";
+                div.innerHTML = `
+                    <span class="font-bold text-red-800 text-lg">${item.prize}</span>
+                    <div class="text-right">
+                        <div class="font-mono text-xl font-bold">${item.num}</div>
+                        <div class="text-xs text-gray-400">${item.time}</div>
+                    </div>
                 `;
+                list.appendChild(div);
             });
-            tbody.innerHTML = html;
         }
 
-        function searchNum() {
-            const input = document.getElementById('searchInput').value.trim();
-            const rows = document.querySelectorAll('.search-item');
-            
-            rows.forEach(row => {
-                const num = row.getAttribute('data-num');
-                if (num.includes(input)) {
-                    row.style.display = '';
-                    if (input.length > 1 && num === input) {
-                        row.classList.add('highlight'); // 完全匹配高亮
-                    } else {
-                        row.classList.remove('highlight');
-                    }
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+        function filterData() {
+            const q = document.getElementById('searchInput').value;
+            const filtered = allWinners.filter(w => w.num.toString().includes(q));
+            renderList(filtered);
         }
+
+        setInterval(loadData, 5000); // 每 5 秒更新
+        loadData();
     </script>
 </body>
 </html>
