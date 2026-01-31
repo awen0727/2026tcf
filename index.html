@@ -11,18 +11,17 @@
             font-family: "Microsoft JhengHei", sans-serif; 
             background: radial-gradient(circle, #8b0000 0%, #300000 100%);
             color: white; 
-            min-height: 100vh; /* 確保高度足夠 */
-            overflow-y: auto; /* 允許垂直捲動，防止手機畫面太小看不到按鈕 */
+            min-height: 100vh;
+            overflow-y: auto;
             display: flex; flex-direction: column; align-items: center;
         }
-        /* 大獎單一數字 (六位數) */
+        /* 大獎單一數字 */
         .lucky-num {
             font-family: 'Oswald', sans-serif;
-            font-size: 12rem; /* 手機版字體稍微縮小一點以免爆版 */
+            font-size: 12rem;
             text-shadow: 0 0 20px #ffd700;
             color: #fff; line-height: 1; margin-top: 10px;
         }
-        /* RWD 響應式調整：電腦版字體變大 */
         @media (min-width: 768px) {
             .lucky-num { font-size: 15rem; }
         }
@@ -97,7 +96,7 @@
     </div>
 
     <script>
-        // V2.0 新網址 (確認無誤)
+        // V2.0 新網址
         const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
         
         let currentMode = 'single';
@@ -117,7 +116,9 @@
             batchCount = count;
             
             document.getElementById('currentPrizeLabel').innerText = `準備抽出：${name}`;
-            document.getElementById('modeHint').innerText = mode === 'batch' ? 將一次顯示 ${count} 位中獎者 : "每次抽出 1 位";
+            // 修正點：這裡加上了反引號 (`)
+            document.getElementById('modeHint').innerText = mode === 'batch' ? `將一次顯示 ${count} 位中獎者` : "每次抽出 1 位";
+            
             document.querySelectorAll('.prize-btn').forEach(b => b.classList.remove('active'));
             if(btn) btn.classList.add('active');
         }
