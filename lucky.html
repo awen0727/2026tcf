@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS 直播看板 (極速版)</title>
+    <title>活動看板 V4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
         
-        /* 視覺優化：PPT 風格紅金配色 */
+        /* PPT 風格紅金配色 */
         body { 
             background: radial-gradient(circle, #8b0000 0%, #1a0000 100%);
             font-family: "Microsoft JhengHei", sans-serif;
@@ -17,7 +17,7 @@
             color: white;
         }
 
-        /* 滿版舞台 */
+        /* 舞台框 */
         .stage {
             width: 90%; max-width: 1400px;
             background: rgba(255, 255, 255, 0.05);
@@ -53,7 +53,7 @@
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 批量抽獎訊息 (不顯示名單) */
+        /* 批量訊息 (不列名單，只顯示恭喜) */
         .batch-msg {
             font-size: 4rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
@@ -65,18 +65,16 @@
             font-size: 2.5rem; color: #ffeb3b; margin-top: 20px;
         }
 
-        /* 等待畫面 */
         .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
+        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.2; font-size: 0.8rem; }
 
         @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }
-        
-        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.2; font-size: 0.8rem; }
     </style>
 </head>
 <body>
-    <div class="version">V4.0 Turbo</div>
+    <div class="version">System V4.1 (Final)</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -86,37 +84,31 @@
     </div>
 
     <script>
-        // V2.0 網址 (請確認您的網址沒變)
+        // ★ 新網址
         const API_URL = "https://script.google.com/macros/s/AKfycbyLlMC7-SnKwSkVic246tHXjyFFaxZLSKHM9Z_cyi-KONKKpStAJ_0zLC7dsEUd9tYz/exec";
         
-        let lastUpdateKey = ""; // 用來記錄上一次的畫面狀態
+        let lastUpdateKey = ""; 
 
-        // 啟動輪詢 (每 1.5 秒問一次)
+        // 每 1.5 秒檢查一次
         setInterval(checkLatest, 1500);
 
         async function checkLatest() {
             try {
-                // ★ 關鍵：使用 op=getLatest，只抓極少量的資料
+                // 使用 getLatest 讓後台運算
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
-                // 如果還沒開始或沒資料
-                if (data.status === 'empty' || data.status === 'waiting') {
-                    // 保持現狀，或是顯示等待，這裡選擇保持現狀以免畫面閃爍
-                    return;
-                }
+                if (data.status === 'empty' || data.status === 'waiting') return;
 
-                // 產生一個唯一碼 (時間+獎項)
                 const currentKey = data.timestamp + data.prize;
 
-                // 只有當資料變動時，才更新畫面
                 if (currentKey !== lastUpdateKey) {
                     render(data);
                     lastUpdateKey = currentKey;
                 }
 
             } catch (err) {
-                console.error("連線問題 (不影響顯示):", err);
+                console.error("連線問題:", err);
             }
         }
 
@@ -127,15 +119,14 @@
             title.innerText = data.prize;
             content.innerHTML = "";
 
-            // 邏輯：只要人數 > 1，就顯示恭喜卡片 (不列名單)
-            // 這樣不管後台是 90 人還是 900 人，瀏覽器都只需要渲染一行字
+            // 人數 > 1 時，強制顯示摘要卡片 (不列名單，避免卡頓)
             if (data.count > 1) {
                 content.innerHTML = `
                     <div class="batch-msg">🎉 恭喜獲獎</div>
                     <div class="sub-text">共 ${data.count} 位得主</div>
                 `;
             } else {
-                // 單人模式，顯示大號碼
+                // 單人模式
                 content.innerHTML = `
                     <div class="big-number">${data.num}</div>
                     <div class="sub-text">🎉 恭喜中獎</div>
