@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V4.1</title>
+    <title>活動看板 V4.2 (診斷版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
         
-        /* PPT 風格紅金配色 */
         body { 
             background: radial-gradient(circle, #8b0000 0%, #1a0000 100%);
             font-family: "Microsoft JhengHei", sans-serif;
@@ -17,7 +16,6 @@
             color: white;
         }
 
-        /* 舞台框 */
         .stage {
             width: 90%; max-width: 1400px;
             background: rgba(255, 255, 255, 0.05);
@@ -28,32 +26,25 @@
             box-shadow: 0 0 60px rgba(0,0,0,0.8);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             min-height: 60vh;
+            position: relative;
         }
 
-        /* 標題 */
         .prize-title {
             font-size: 5rem; font-weight: bold; color: #ffd700;
             text-shadow: 3px 3px 0px #8b0000;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
+            margin-bottom: 20px; letter-spacing: 2px;
         }
 
-        /* 內容區 */
         .content-area {
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 單抽大數字 */
         .big-number {
-            font-family: 'Oswald', sans-serif;
-            font-size: 16rem;
-            color: white;
-            text-shadow: 0 0 40px #ffd700;
-            line-height: 1;
+            font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
+            text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 批量訊息 (不列名單，只顯示恭喜) */
         .batch-msg {
             font-size: 4rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
@@ -61,54 +52,81 @@
             animation: fadeIn 0.8s;
         }
         
-        .sub-text {
-            font-size: 2.5rem; color: #ffeb3b; margin-top: 20px;
-        }
-
+        .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 20px; }
         .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
-        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.2; font-size: 0.8rem; }
 
         @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }
+        
+        /* 診斷區塊 */
+        .status-bar {
+            position: absolute; bottom: 10px; right: 20px; 
+            font-size: 1rem; color: rgba(255,255,255,0.5);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: gray; }
+        .dot.green { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .dot.red { background: #ff0000; box-shadow: 0 0 5px #ff0000; }
     </style>
 </head>
 <body>
-    <div class="version">System V4.1 (Final)</div>
-
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
         <div id="contentArea" class="content-area">
             <div class="waiting">等待抽獎結果...</div>
         </div>
+        
+        <div class="status-bar">
+            <div id="statusDot" class="dot"></div>
+            <span id="statusText">系統連線中...</span>
+        </div>
     </div>
 
     <script>
-        // ★ 新網址
+        // 確認此網址與後台一致
         const API_URL = "https://script.google.com/macros/s/AKfycbyLlMC7-SnKwSkVic246tHXjyFFaxZLSKHM9Z_cyi-KONKKpStAJ_0zLC7dsEUd9tYz/exec";
         
         let lastUpdateKey = ""; 
 
-        // 每 1.5 秒檢查一次
         setInterval(checkLatest, 1500);
 
         async function checkLatest() {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+
             try {
-                // 使用 getLatest 讓後台運算
+                // 發送請求
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
-                if (data.status === 'empty' || data.status === 'waiting') return;
+                // 連線成功：亮綠燈
+                dot.className = "dot green";
+                
+                if (data.status === 'empty') {
+                    txt.innerText = "連線正常：目前無中獎資料";
+                    return; 
+                }
+                
+                if (data.status === 'waiting') {
+                    txt.innerText = "連線正常：等待開獎";
+                    return;
+                }
 
-                const currentKey = data.timestamp + data.prize;
-
-                if (currentKey !== lastUpdateKey) {
-                    render(data);
-                    lastUpdateKey = currentKey;
+                if (data.status === 'success') {
+                    txt.innerText = `已更新：${data.prize}`;
+                    const currentKey = data.timestamp + data.prize;
+                    if (currentKey !== lastUpdateKey) {
+                        render(data);
+                        lastUpdateKey = currentKey;
+                    }
                 }
 
             } catch (err) {
-                console.error("連線問題:", err);
+                // 連線失敗：亮紅燈
+                dot.className = "dot red";
+                txt.innerText = "連線失敗 (請檢查後台部署)";
+                console.error(err);
             }
         }
 
@@ -119,14 +137,12 @@
             title.innerText = data.prize;
             content.innerHTML = "";
 
-            // 人數 > 1 時，強制顯示摘要卡片 (不列名單，避免卡頓)
             if (data.count > 1) {
                 content.innerHTML = `
                     <div class="batch-msg">🎉 恭喜獲獎</div>
                     <div class="sub-text">共 ${data.count} 位得主</div>
                 `;
             } else {
-                // 單人模式
                 content.innerHTML = `
                     <div class="big-number">${data.num}</div>
                     <div class="sub-text">🎉 恭喜中獎</div>
