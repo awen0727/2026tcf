@@ -10,184 +10,53 @@
         body { 
             font-family: "Microsoft JhengHei", sans-serif; 
             background: radial-gradient(circle, #8b0000 0%, #300000 100%);
-            color: white;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            color: white; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
         }
+        /* 大獎單一數字 (六位數) */
         .lucky-num {
             font-family: 'Oswald', sans-serif;
-            font-size: 18rem; /* 超大字體 */
+            font-size: 14rem; 
             text-shadow: 0 0 20px #ffd700;
-            color: #fff;
-            line-height: 1;
+            color: #fff; line-height: 1; margin-top: 20px;
         }
+        /* 按鈕樣式 */
         .prize-btn {
-            border: 2px solid #ffd700;
-            color: #ffd700;
-            background: rgba(0,0,0,0.3);
-            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 215, 0, 0.3);
+            color: #ffd700; transition: all 0.2s; white-space: nowrap;
         }
+        .prize-btn:hover { background: rgba(255, 215, 0, 0.2); transform: scale(1.05); }
         .prize-btn.active {
-            background: #ffd700;
-            color: #8b0000;
-            box-shadow: 0 0 15px #ffd700;
-            font-weight: bold;
+            background: #ffd700; color: #8b0000; box-shadow: 0 0 15px #ffd700; font-weight: bold;
         }
-        /* 遮罩層 */
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 99;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer;
+        /* 紅榜彈窗 (顯示大量名單用) */
+        #batchModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 50; justify-content: center; align-items: center;
         }
+        .batch-content {
+            background: #fff; color: #8b0000; width: 95%; max-width: 1200px; height: 90vh;
+            border-radius: 20px; padding: 20px; display: flex; flex-direction: column;
+            border: 5px solid #ffd700; box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
+        }
+        /* 號碼格子 */
+        .num-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+            gap: 10px; overflow-y: auto; padding: 10px; flex-grow: 1;
+        }
+        .grid-item {
+            background: #8b0000; color: #fff; font-family: 'Oswald', sans-serif; font-size: 1.8rem;
+            text-align: center; padding: 5px; border-radius: 8px;
+            animation: popIn 0.5s ease-out backwards;
+        }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div id="overlay" onclick="unlockAudio()">
-        <div class="text-center">
-            <h1 class="text-4xl font-bold mb-4 text-yellow-400">點擊畫面開始抽獎活動</h1>
-            <p class="text-xl text-gray-300">啟動音效與語音引擎</p>
-        </div>
-    </div>
-
-    <div class="w-full p-4 flex gap-4 justify-center flex-wrap z-10 bg-black/20 backdrop-blur-sm">
-        <button onclick="setPrize('500元獎', this)" class="prize-btn active px-6 py-2 rounded-full text-xl">500元</button>
-        <button onclick="setPrize('1000元獎', this)" class="prize-btn px-6 py-2 rounded-full text-xl">1000元</button>
-        <button onclick="setPrize('10000元大獎', this)" class="prize-btn px-6 py-2 rounded-full text-xl border-red-500 text-red-300">10000元</button>
-        <button onclick="inputCustomPrize(this)" class="prize-btn px-6 py-2 rounded-full text-xl">➕ 加碼獎</button>
-    </div>
-
-    <div class="flex-grow flex flex-col justify-center items-center w-full">
-        <div class="text-3xl text-yellow-400 mb-4 tracking-widest" id="currentPrizeLabel">正在抽出：500元獎</div>
-        <div id="displayNum" class="lucky-num">000</div>
-    </div>
-
-    <div class="w-full p-8 flex justify-center pb-12">
-        <button id="drawBtn" onclick="startDraw()" class="bg-gradient-to-t from-yellow-600 to-yellow-400 hover:from-yellow-500 hover:to-yellow-300 text-red-900 font-black text-5xl px-20 py-6 rounded-2xl shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-            開始抽獎
-        </button>
-    </div>
-
-    <script>
-        const API_URL = "hhttps://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
-        let currentPrize = "500元獎";
-        let isRolling = false;
-        let animationId;
-        
-        // 音效與語音
-        function unlockAudio() {
-            document.getElementById('overlay').style.display = 'none';
-            // 嘗試播放一個無聲片段來解鎖 mobile safari 的音效限制
-            const speech = new SpeechSynthesisUtterance("系統就緒");
-            window.speechSynthesis.speak(speech);
-        }
-
-        function setPrize(name, btn) {
-            if (isRolling) return;
-            currentPrize = name;
-            document.getElementById('currentPrizeLabel').innerText = "正在抽出：" + name;
-            
-            // UI 更新
-            document.querySelectorAll('.prize-btn').forEach(b => b.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-        }
-
-        function inputCustomPrize(btn) {
-            if (isRolling) return;
-            const name = prompt("請輸入加碼獎項名稱：", "會長加碼現金");
-            if (name) {
-                setPrize(name, btn);
-            }
-        }
-
-        function startDraw() {
-            if (isRolling) return;
-            
-            const btn = document.getElementById('drawBtn');
-            const display = document.getElementById('displayNum');
-            
-            isRolling = true;
-            btn.disabled = true;
-            btn.innerText = "抽獎中...";
-
-            // 1. 開始滾動動畫
-            let counter = 0;
-            const runAnimation = () => {
-                display.innerText = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-                animationId = requestAnimationFrame(runAnimation);
-            };
-            runAnimation();
-
-            // 2. 呼叫後端 API
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'draw', prizeName: currentPrize })
-            })
-            .then(res => res.json())
-            .then(data => {
-                // 收到資料，停止動畫
-                cancelAnimationFrame(animationId);
-                
-                if (data.result === 'success') {
-                    // 減速特效 (模擬停下來的感覺)
-                    slowDownEffect(data.winner, () => {
-                        // 最終停止
-                        display.innerText = data.winner;
-                        // 語音朗讀
-                        speakWinner(data.winner);
-                        
-                        btn.disabled = false;
-                        btn.innerText = "開始抽獎";
-                        isRolling = false;
-                    });
-                } else {
-                    display.innerText = "---";
-                    alert(data.message); // 例如：獎項抽完了
-                    btn.disabled = false;
-                    btn.innerText = "開始抽獎";
-                    isRolling = false;
-                }
-            })
-            .catch(err => {
-                cancelAnimationFrame(animationId);
-                alert("連線錯誤：" + err);
-                btn.disabled = false;
-                isRolling = false;
-            });
-        }
-
-        function slowDownEffect(finalNum, callback) {
-            const display = document.getElementById('displayNum');
-            let i = 0;
-            let speed = 50;
-            
-            function step() {
-                // 隨機跳幾個數字
-                display.innerText = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-                i++;
-                if (i < 10) {
-                    setTimeout(step, speed);
-                    speed += 30; // 越來越慢
-                } else {
-                    callback();
-                }
-            }
-            step();
-        }
-
-        function speakWinner(num) {
-            // 將號碼拆開唸，例如 088 -> 零、八、八
-            const text = `恭喜，${num.split('').join('，')}號，獲得${currentPrize}`;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-TW';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.1;
-            window.speechSynthesis.speak(utterance);
-        }
-    </script>
-</body>
-</html>
+    <div class="w-full p-4 z-10 bg-black/30 backdrop-blur-sm flex flex-col gap-3 items-center">
+        <div class="flex flex-wrap justify-center gap-2">
+            <button onclick="setMode('batch', '500元獎', 90, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">500元 (90名)</button>
+            <button onclick="setMode('batch', '1000元獎', 10, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">1000元 (10名)</button>
+            <button onclick="setMode('batch', '3000元獎', 3, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">3000元 (3名)</button>
+            <button onclick="setMode('batch', '5000元獎', 2, this)" class="prize-btn px-4 py-2 rounded text-lg font-
