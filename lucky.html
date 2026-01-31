@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V5.1 (Stable)</title>
+    <title>活動看板 V5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -46,7 +46,7 @@
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 批量訊息 (卡頓救星) */
+        /* 批量訊息 (防止卡頓的核心) */
         .batch-msg {
             font-size: 4rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
@@ -54,7 +54,6 @@
             animation: fadeIn 0.8s;
         }
         
-        /* 錯誤警告 */
         .error-msg {
             font-size: 3rem; color: #ff4444; background: rgba(0,0,0,0.8);
             padding: 20px; border: 2px solid red; border-radius: 10px;
@@ -63,7 +62,7 @@
 
         .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 20px; }
         .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
-        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.2; font-size: 0.8rem; }
+        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.3; font-size: 0.9rem; font-family: monospace; }
 
         @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -71,7 +70,7 @@
     </style>
 </head>
 <body>
-    <div class="version">System V5.1</div>
+    <div class="version">System V5.2 (Connected)</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -81,8 +80,8 @@
     </div>
 
     <script>
-        // ★ 您的新網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbzWdNQ1THBAFUORM5qobrZZq-vGAilJE7rYE0NwjGVWBEg_xQt1yDdqcIYUvV2vAp_4/exec";
+        // ★ 更新後的後台網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbx7H9a0eVTLrROF-XBy6oXb2VYMUTaaKzPi2wmQ-lZIUkEVSsYGesCe270nXCG5hOdt/exec";
         
         let lastUpdateKey = ""; 
 
@@ -95,12 +94,11 @@
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
-                // 防呆：如果後台回傳陣列，代表後台版本還是舊的
+                // 防呆：如果後台回傳陣列，代表後台沒更新
                 if (Array.isArray(data)) {
-                    document.getElementById('prizeTitle').innerText = "系統警告";
+                    document.getElementById('prizeTitle').innerText = "版本不符";
                     document.getElementById('contentArea').innerHTML = `
-                        <div class="error-msg">⚠️ 後台版本異常</div>
-                        <div class="text-xl mt-4">請確認已發布 New Version</div>
+                        <div class="error-msg">⚠️ 請重新部署後台</div>
                     `;
                     return;
                 }
@@ -127,7 +125,7 @@
             content.innerHTML = "";
 
             if (data.count > 1) {
-                // 批量模式：只顯示文字，不渲染名單 -> 絕對不卡
+                // 批量模式：只顯示文字
                 content.innerHTML = `
                     <div class="batch-msg">🎉 恭喜獲獎</div>
                     <div class="sub-text">共 ${data.count} 位得主</div>
