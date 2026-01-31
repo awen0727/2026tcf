@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V6.4</title>
+    <title>活動看板 V6.5 (診斷版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -39,14 +39,12 @@
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 大獎號碼 (霸氣顯示) */
         .big-number {
             font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
             text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 普獎賀詞 (隱藏號碼) */
         .batch-msg {
             font-size: 5rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.4); padding: 30px 80px; border-radius: 20px;
@@ -56,10 +54,19 @@
         }
         
         .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 30px; font-weight: bold; }
-        
-        .error-msg { font-size: 2rem; color: #ff4444; background: rgba(0,0,0,0.8); padding: 10px 20px; border: 1px solid red; border-radius: 10px; }
         .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
-        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.3; font-size: 0.9rem; font-family: monospace; }
+
+        /* === 診斷狀態列 === */
+        .status-bar {
+            position: absolute; bottom: 10px; right: 10px; 
+            background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 5px;
+            font-size: 1rem; color: #aaa; font-family: monospace;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: gray; }
+        .dot.green { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .dot.red { background: #ff0000; box-shadow: 0 0 5px #ff0000; }
+        .dot.yellow { background: #ffff00; box-shadow: 0 0 5px #ffff00; }
 
         @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -67,15 +74,97 @@
     </style>
 </head>
 <body>
-    <div class="version">System V6.4 (10K Fixed)</div>
-
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
         <div id="contentArea" class="content-area">
             <div class="waiting">等待抽獎結果...</div>
         </div>
+
+        <div class="status-bar">
+            <div id="statusDot" class="dot"></div>
+            <span id="statusText">正在連線...</span>
+        </div>
     </div>
 
     <script>
-        // 您的後台網址 (V6.1 Time-Sorted)
-        const API_URL = "
+        // 這是您上次提供的 V6.1 後台網址
+        // ★ 如果您有重新產生網址，請務必更換下面這行！
+        const API_URL = "https://script.google.com/macros/s/AKfycbxwEld6cddUmHShvDNOuZxqeJCIsjxPNwWHdjJovk2OA2nK2yv8LRDelvqqxXcj1BGh/exec";
+        
+        let lastUpdateKey = ""; 
+
+        setInterval(checkLatest, 1500);
+
+        async function checkLatest() {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+
+            try {
+                // 發送請求
+                const res = await fetch(API_URL + '?op=getLatest');
+                const data = await res.json();
+
+                // 診斷 1: 如果回傳是陣列 -> 後台版本太舊
+                if (Array.isArray(data)) {
+                    dot.className = "dot yellow";
+                    txt.innerText = "警告：後台未更新 (請建立新版本)";
+                    return;
+                }
+
+                // 診斷 2: 正常連線
+                dot.className = "dot green";
+                
+                if (data.status === 'empty') {
+                    txt.innerText = "連線正常 (尚無資料)";
+                    return;
+                }
+
+                if (data.status === 'waiting') {
+                    txt.innerText = "連線正常 (等待中)";
+                    return;
+                }
+
+                // 成功抓到資料
+                txt.innerText = `最新：${data.prize} (${data.time})`;
+
+                const currentKey = data.timestamp + data.prize;
+                if (currentKey !== lastUpdateKey) {
+                    render(data);
+                    lastUpdateKey = currentKey;
+                }
+
+            } catch (err) {
+                // 診斷 3: 連線失敗 -> 網址錯誤或網路斷線
+                console.error(err);
+                dot.className = "dot red";
+                txt.innerText = "連線失敗 (請檢查網址)";
+            }
+        }
+
+        function render(data) {
+            const title = document.getElementById('prizeTitle');
+            const content = document.getElementById('contentArea');
+            
+            title.innerText = data.prize;
+            content.innerHTML = "";
+
+            // V6.4 邏輯：排除大獎的關鍵字過濾
+            const batchKeywords = ["500", "1000", "3000", "5000", "90名", "10名", "3名", "2名"];
+            const isGrandPrize = data.prize.includes("10000") || data.prize.includes("大獎");
+            const isBatchMode = data.count > 1 || (batchKeywords.some(k => data.prize.includes(k)) && !isGrandPrize);
+
+            if (isBatchMode) {
+                content.innerHTML = `
+                    <div class="batch-msg">🎉 恭喜獲獎</div>
+                    <div class="sub-text">名單已同步至總覽看板</div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="big-number">${data.num}</div>
+                    <div class="sub-text">🎉 恭喜中獎</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
