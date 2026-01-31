@@ -3,234 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V3.2</title>
+    <title>OBS 直播看板 (極速版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
         
-        /* 背景：紅金配色 */
+        /* 視覺優化：PPT 風格紅金配色 */
         body { 
             background: radial-gradient(circle, #8b0000 0%, #1a0000 100%);
             font-family: "Microsoft JhengHei", sans-serif;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden; 
-            display: flex;
-            padding: 20px;
-            gap: 20px;
-            box-sizing: border-box;
+            height: 100vh; width: 100vw; overflow: hidden; 
+            display: flex; justify-content: center; align-items: center;
             color: white;
         }
 
-        /* 左側主舞台 */
-        .main-stage {
-            flex: 3;
+        /* 滿版舞台 */
+        .stage {
+            width: 90%; max-width: 1400px;
             background: rgba(255, 255, 255, 0.05);
-            border: 4px solid #ffd700;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
-        }
-
-        .stage-header {
-            background: linear-gradient(to right, #8b0000, #d4af37, #8b0000);
-            color: #fff;
-            padding: 15px;
+            border: 6px solid #ffd700;
+            border-radius: 30px;
+            padding: 40px;
             text-align: center;
-            font-size: 3rem;
-            font-weight: bold;
-            border-bottom: 2px solid #ffd700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            box-shadow: 0 0 60px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-height: 60vh;
         }
 
-        .stage-content {
-            flex-grow: 1;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+        /* 標題 */
+        .prize-title {
+            font-size: 5rem; font-weight: bold; color: #ffd700;
+            text-shadow: 3px 3px 0px #8b0000;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
         }
 
-        /* 樣式 A: 單一號碼 (10000元大獎用) */
-        .single-winner-num { 
-            font-family: 'Oswald', sans-serif; 
-            font-size: 14rem; 
-            color: #fff; 
-            text-shadow: 0 0 30px #ffd700; 
-            animation: popUp 0.5s ease-out;
+        /* 內容區 */
+        .content-area {
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 樣式 B: 僅顯示文字 (500/1000/3000/5000元用) */
-        .batch-message-box {
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-            background: rgba(0,0,0,0.2);
-            padding: 30px 60px;
-            border-radius: 20px;
-            border: 2px solid rgba(255, 215, 0, 0.3);
-        }
-        .batch-title { font-size: 5rem; font-weight: bold; color: #ffd700; margin-bottom: 20px; }
-        .batch-sub { font-size: 2.5rem; color: #fff; }
-
-        /* 右側側邊欄 */
-        .sidebar {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar-header {
-            background: rgba(0,0,0,0.6); 
-            color: #ffd700; 
-            padding: 10px; 
-            text-align: center; 
-            font-weight: bold; 
-            font-size: 1.5rem;
-        }
-        .sidebar-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
-
-        .history-item { 
-            background: rgba(255,255,255,0.1); 
-            margin-bottom: 8px; 
-            padding: 10px; 
-            border-radius: 8px; 
-            font-size: 1.1rem; 
-            border-left: 4px solid #ffd700;
+        /* 單抽大數字 */
+        .big-number {
+            font-family: 'Oswald', sans-serif;
+            font-size: 16rem;
+            color: white;
+            text-shadow: 0 0 40px #ffd700;
+            line-height: 1;
+            animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 版本號 */
-        .version-tag {
-            position: absolute; bottom: 5px; right: 10px; color: rgba(255,255,255,0.2); font-size: 0.8rem;
+        /* 批量抽獎訊息 (不顯示名單) */
+        .batch-msg {
+            font-size: 4rem; color: white; font-weight: bold;
+            background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            animation: fadeIn 0.8s;
+        }
+        
+        .sub-text {
+            font-size: 2.5rem; color: #ffeb3b; margin-top: 20px;
         }
 
-        @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        ::-webkit-scrollbar { width: 0px; }
+        /* 等待畫面 */
+        .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
+
+        @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }
+        
+        .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.2; font-size: 0.8rem; }
     </style>
 </head>
 <body>
-    <div class="version-tag">System V3.2</div>
+    <div class="version">V4.0 Turbo</div>
 
-    <div class="main-stage">
-        <div id="stageTitle" class="stage-header">活動準備中</div>
-        <div id="stageContent" class="stage-content">
-            <div class="text-white text-3xl opacity-50 animate-pulse">連線中...</div>
+    <div class="stage">
+        <div id="prizeTitle" class="prize-title">活動準備中</div>
+        <div id="contentArea" class="content-area">
+            <div class="waiting">等待抽獎結果...</div>
         </div>
     </div>
 
-    <div class="sidebar">
-        <div class="sidebar-header">📜 近期開獎</div>
-        <div id="historyList" class="sidebar-list"></div>
-    </div>
-
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
+        // V2.0 網址 (請確認您的網址沒變)
+        const API_URL = "https://script.google.com/macros/s/AKfycbyLlMC7-SnKwSkVic246tHXjyFFaxZLSKHM9Z_cyi-KONKKpStAJ_0zLC7dsEUd9tYz/exec";
         
-        let lastChecksum = ""; 
+        let lastUpdateKey = ""; // 用來記錄上一次的畫面狀態
 
-        // 每 2 秒更新一次
-        setInterval(updateData, 2000);
-        updateData();
+        // 啟動輪詢 (每 1.5 秒問一次)
+        setInterval(checkLatest, 1500);
 
-        async function updateData() {
+        async function checkLatest() {
             try {
-                const res = await fetch(API_URL + '?op=getData');
-                const rawData = await res.json();
+                // ★ 關鍵：使用 op=getLatest，只抓極少量的資料
+                const res = await fetch(API_URL + '?op=getLatest');
+                const data = await res.json();
 
-                if (!Array.isArray(rawData) || rawData.length === 0) {
-                    document.getElementById('stageContent').innerHTML = "<div class='text-white text-3xl opacity-50'>等待開獎</div>";
+                // 如果還沒開始或沒資料
+                if (data.status === 'empty' || data.status === 'waiting') {
+                    // 保持現狀，或是顯示等待，這裡選擇保持現狀以免畫面閃爍
                     return;
                 }
 
-                // 取出最新的一筆資料作為代表
-                const latest = rawData[0];
-                // 產生一個簡單的檢查碼 (時間+獎項)，如果有變動才更新畫面
-                const currentChecksum = latest.time + latest.prize;
+                // 產生一個唯一碼 (時間+獎項)
+                const currentKey = data.timestamp + data.prize;
 
-                if (currentChecksum !== lastChecksum) {
-                    // 計算這一批有多少人 (簡單過濾)
-                    const count = rawData.filter(r => r.time === latest.time && r.prize === latest.prize).length;
-                    
-                    renderStage(latest.prize, latest.num, count);
-                    
-                    // 順便更新側邊欄 (只做簡單渲染)
-                    renderSidebar(rawData);
-                    
-                    lastChecksum = currentChecksum;
+                // 只有當資料變動時，才更新畫面
+                if (currentKey !== lastUpdateKey) {
+                    render(data);
+                    lastUpdateKey = currentKey;
                 }
 
             } catch (err) {
-                console.error("Error:", err);
+                console.error("連線問題 (不影響顯示):", err);
             }
         }
 
-        function renderStage(prizeName, winnerNum, count) {
-            const title = document.getElementById('stageTitle');
-            const content = document.getElementById('stageContent');
+        function render(data) {
+            const title = document.getElementById('prizeTitle');
+            const content = document.getElementById('contentArea');
             
-            title.innerText = prizeName;
+            title.innerText = data.prize;
             content.innerHTML = "";
 
-            // 邏輯判斷：如果是多人獎項，或者獎項名稱包含 500/1000/3000/5000
-            // 只要人數 > 1，就絕對不顯示號碼，避免卡頓
-            if (count > 1) {
-                // --- 批量模式 (只顯示文字) ---
-                const box = document.createElement('div');
-                box.className = 'batch-message-box';
-                box.innerHTML = `
-                    <div class="batch-title">🎉 恭喜獲獎</div>
-                    <div class="batch-sub">共 ${count} 位得主</div>
+            // 邏輯：只要人數 > 1，就顯示恭喜卡片 (不列名單)
+            // 這樣不管後台是 90 人還是 900 人，瀏覽器都只需要渲染一行字
+            if (data.count > 1) {
+                content.innerHTML = `
+                    <div class="batch-msg">🎉 恭喜獲獎</div>
+                    <div class="sub-text">共 ${data.count} 位得主</div>
                 `;
-                content.appendChild(box);
             } else {
-                // --- 單人模式 (顯示大號碼) ---
-                const div = document.createElement('div');
-                div.className = 'single-winner-num';
-                div.innerText = winnerNum;
-                content.appendChild(div);
-                
-                const sub = document.createElement('div');
-                sub.className = "text-2xl text-yellow-200 mt-4";
-                sub.innerText = "🎉 恭喜中獎";
-                content.appendChild(sub);
-            }
-        }
-
-        function renderSidebar(data) {
-            const list = document.getElementById('historyList');
-            list.innerHTML = "";
-            
-            // 為了不卡頓，我們只抓出「不同的批次」
-            // 這裡用一個簡單的方法：只顯示前 10 筆「不重複批次」的紀錄
-            
-            let shownBatches = 0;
-            let lastBatchKey = "";
-            
-            for (let i = 0; i < data.length; i++) {
-                if (shownBatches >= 10) break; // 最多顯示10筆
-                
-                const item = data[i];
-                const key = item.time + item.prize;
-                
-                // 如果這筆資料跟上一筆是同一批，就跳過 (除了第一筆，第一筆我們已在主畫面顯示，這裡可以選擇要不要顯示)
-                // 這裡我們簡單點：只顯示每一批的第一個代表
-                if (key !== lastBatchKey) {
-                    const div = document.createElement('div');
-                    div.className = 'history-item';
-                    
-                    // 這裡不計算 count 了，直接顯示獎項，避免迴圈太重
-                    div.innerHTML = `<span style="color:#ffd700;font-weight:bold;">${item.prize}</span> <span style="font-size:0.8em;color:#ccc;">(已開出)</span>`;
-                    
-                    list.appendChild(div);
-                    lastBatchKey = key;
-                    shownBatches++;
-                }
+                // 單人模式，顯示大號碼
+                content.innerHTML = `
+                    <div class="big-number">${data.num}</div>
+                    <div class="sub-text">🎉 恭喜中獎</div>
+                `;
             }
         }
     </script>
