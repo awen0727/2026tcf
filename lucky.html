@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V5.2</title>
+    <title>活動看板 V6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -39,14 +39,12 @@
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 單抽大數字 */
         .big-number {
             font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
             text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 批量訊息 (防止卡頓的核心) */
         .batch-msg {
             font-size: 4rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
@@ -55,9 +53,8 @@
         }
         
         .error-msg {
-            font-size: 3rem; color: #ff4444; background: rgba(0,0,0,0.8);
-            padding: 20px; border: 2px solid red; border-radius: 10px;
-            animation: pulse 1s infinite;
+            font-size: 2rem; color: #ff4444; background: rgba(0,0,0,0.8);
+            padding: 10px 20px; border: 1px solid red; border-radius: 10px;
         }
 
         .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 20px; }
@@ -70,7 +67,7 @@
     </style>
 </head>
 <body>
-    <div class="version">System V5.2 (Connected)</div>
+    <div class="version">System V6.1</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -80,26 +77,20 @@
     </div>
 
     <script>
-        // ★ 更新後的後台網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbx7H9a0eVTLrROF-XBy6oXb2VYMUTaaKzPi2wmQ-lZIUkEVSsYGesCe270nXCG5hOdt/exec";
+        // ★ 新網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbxwEld6cddUmHShvDNOuZxqeJCIsjxPNwWHdjJovk2OA2nK2yv8LRDelvqqxXcj1BGh/exec";
         
         let lastUpdateKey = ""; 
 
-        // 1.5秒更新一次
         setInterval(checkLatest, 1500);
 
         async function checkLatest() {
             try {
-                // 使用 getLatest 模式
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
-                // 防呆：如果後台回傳陣列，代表後台沒更新
                 if (Array.isArray(data)) {
-                    document.getElementById('prizeTitle').innerText = "版本不符";
-                    document.getElementById('contentArea').innerHTML = `
-                        <div class="error-msg">⚠️ 請重新部署後台</div>
-                    `;
+                    document.getElementById('contentArea').innerHTML = `<div class="error-msg">⚠️ 後台未發布新版本</div>`;
                     return;
                 }
 
@@ -113,7 +104,7 @@
                 }
 
             } catch (err) {
-                console.error("連線問題:", err);
+                console.error(err);
             }
         }
 
@@ -125,13 +116,11 @@
             content.innerHTML = "";
 
             if (data.count > 1) {
-                // 批量模式：只顯示文字
                 content.innerHTML = `
                     <div class="batch-msg">🎉 恭喜獲獎</div>
                     <div class="sub-text">共 ${data.count} 位得主</div>
                 `;
             } else {
-                // 單人模式
                 content.innerHTML = `
                     <div class="big-number">${data.num}</div>
                     <div class="sub-text">🎉 恭喜中獎</div>
