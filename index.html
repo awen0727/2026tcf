@@ -3,33 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>現場抽獎 - 獅子會</title>
+    <title>自強家族新春聯誼抽獎</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
         body { 
             font-family: "Microsoft JhengHei", sans-serif; 
             background: radial-gradient(circle, #8b0000 0%, #300000 100%);
-            color: white; height: 100vh; overflow: hidden;
+            color: white; 
+            min-height: 100vh; /* 確保高度足夠 */
+            overflow-y: auto; /* 允許垂直捲動，防止手機畫面太小看不到按鈕 */
             display: flex; flex-direction: column; align-items: center;
         }
         /* 大獎單一數字 (六位數) */
         .lucky-num {
             font-family: 'Oswald', sans-serif;
-            font-size: 14rem; 
+            font-size: 12rem; /* 手機版字體稍微縮小一點以免爆版 */
             text-shadow: 0 0 20px #ffd700;
-            color: #fff; line-height: 1; margin-top: 20px;
+            color: #fff; line-height: 1; margin-top: 10px;
         }
+        /* RWD 響應式調整：電腦版字體變大 */
+        @media (min-width: 768px) {
+            .lucky-num { font-size: 15rem; }
+        }
+
         /* 按鈕樣式 */
         .prize-btn {
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 215, 0, 0.3);
-            color: #ffd700; transition: all 0.2s; white-space: nowrap;
+            color: #ffd700; transition: all 0.2s; white-space: nowrap; margin: 4px;
         }
         .prize-btn:hover { background: rgba(255, 215, 0, 0.2); transform: scale(1.05); }
         .prize-btn.active {
             background: #ffd700; color: #8b0000; box-shadow: 0 0 15px #ffd700; font-weight: bold;
         }
-        /* 紅榜彈窗 (顯示大量名單用) */
+        /* 紅榜彈窗 */
         #batchModal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 50; justify-content: center; align-items: center;
@@ -39,13 +46,12 @@
             border-radius: 20px; padding: 20px; display: flex; flex-direction: column;
             border: 5px solid #ffd700; box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
         }
-        /* 號碼格子 */
         .num-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
             gap: 10px; overflow-y: auto; padding: 10px; flex-grow: 1;
         }
         .grid-item {
-            background: #8b0000; color: #fff; font-family: 'Oswald', sans-serif; font-size: 1.8rem;
+            background: #8b0000; color: #fff; font-family: 'Oswald', sans-serif; font-size: 1.5rem;
             text-align: center; padding: 5px; border-radius: 8px;
             animation: popIn 0.5s ease-out backwards;
         }
@@ -55,8 +61,169 @@
 <body>
 
     <div class="w-full p-4 z-10 bg-black/30 backdrop-blur-sm flex flex-col gap-3 items-center">
-        <div class="flex flex-wrap justify-center gap-2">
+        <div class="flex flex-wrap justify-center">
             <button onclick="setMode('batch', '500元獎', 90, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">500元 (90名)</button>
             <button onclick="setMode('batch', '1000元獎', 10, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">1000元 (10名)</button>
             <button onclick="setMode('batch', '3000元獎', 3, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">3000元 (3名)</button>
-            <button onclick="setMode('batch', '5000元獎', 2, this)" class="prize-btn px-4 py-2 rounded text-lg font-
+            <button onclick="setMode('batch', '5000元獎', 2, this)" class="prize-btn px-4 py-2 rounded text-lg font-bold">5000元 (2名)</button>
+        </div>
+        <div class="flex flex-wrap justify-center border-t border-white/20 pt-2">
+            <button onclick="setMode('single', '10000元大獎', 1, this)" class="prize-btn active px-6 py-2 rounded text-xl border-red-500 text-red-300 font-bold">🏆 10000元大獎</button>
+            <button onclick="inputCustomPrize(this)" class="prize-btn px-6 py-2 rounded text-xl">➕ 加碼單抽</button>
+        </div>
+    </div>
+
+    <div class="flex-grow flex flex-col justify-center items-center w-full py-10">
+        <div class="text-2xl md:text-3xl text-yellow-400 mb-2 tracking-widest" id="currentPrizeLabel">準備抽出：10000元大獎</div>
+        <div id="displayNum" class="lucky-num">000000</div>
+        <p id="modeHint" class="text-gray-400 mt-4 text-xl">每次抽出 1 位</p>
+    </div>
+
+    <div class="w-full p-8 flex justify-center pb-20">
+        <button id="drawBtn" onclick="startDraw()" class="bg-gradient-to-t from-yellow-600 to-yellow-400 text-red-900 font-black text-4xl md:text-5xl px-12 py-6 rounded-2xl shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+            開始抽獎
+        </button>
+    </div>
+
+    <div id="batchModal">
+        <div class="batch-content">
+            <div class="flex justify-between items-center border-b-2 border-red-800 pb-2 mb-2">
+                <h2 id="batchTitle" class="text-2xl md:text-3xl font-bold text-red-700">中獎名單</h2>
+                <button onclick="closeBatchModal()" class="text-4xl text-gray-500 hover:text-red-600 px-2">&times;</button>
+            </div>
+            <div id="batchGrid" class="num-grid"></div>
+            <div class="mt-2 text-center text-gray-500 text-sm">請工作人員協助截圖或核對</div>
+        </div>
+    </div>
+
+    <script>
+        // V2.0 新網址 (確認無誤)
+        const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
+        
+        let currentMode = 'single';
+        let currentPrize = "10000元大獎";
+        let batchCount = 1;
+        let isRolling = false;
+        let animationId;
+
+        document.body.addEventListener('click', () => {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+        }, {once:true});
+
+        function setMode(mode, name, count, btn) {
+            if (isRolling) return;
+            currentMode = mode;
+            currentPrize = name;
+            batchCount = count;
+            
+            document.getElementById('currentPrizeLabel').innerText = `準備抽出：${name}`;
+            document.getElementById('modeHint').innerText = mode === 'batch' ? 將一次顯示 ${count} 位中獎者 : "每次抽出 1 位";
+            document.querySelectorAll('.prize-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        }
+
+        function inputCustomPrize(btn) {
+            const name = prompt("請輸入加碼獎項名稱：", "會長加碼現金");
+            if (name) setMode('single', name, 1, btn);
+        }
+
+        function startDraw() {
+            if (isRolling) return;
+            const btn = document.getElementById('drawBtn');
+            const display = document.getElementById('displayNum');
+            
+            isRolling = true;
+            btn.disabled = true;
+
+            if (currentMode === 'single') {
+                btn.innerText = "抽獎中...";
+                const runAnimation = () => {
+                    display.innerText = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+                    animationId = requestAnimationFrame(runAnimation);
+                };
+                runAnimation();
+
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'draw', prizeName: currentPrize, count: 1 })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    cancelAnimationFrame(animationId);
+                    if (data.result === 'success') {
+                        display.innerText = data.winners[0];
+                        speak(`恭喜${data.winners[0]}號`);
+                    } else {
+                        display.innerText = "------";
+                        alert(data.message);
+                    }
+                    resetBtn();
+                })
+                .catch(err => {
+                    cancelAnimationFrame(animationId);
+                    alert("連線錯誤");
+                    resetBtn();
+                });
+            } else {
+                btn.innerText = "計算中...";
+                display.innerText = "Processing"; 
+                
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'draw', prizeName: currentPrize, count: batchCount })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        showBatchResults(data.winners);
+                        speak(`恭喜${currentPrize}，共${data.winners.length}位`);
+                    } else {
+                        alert(data.message);
+                    }
+                    display.innerText = "000000";
+                    resetBtn();
+                })
+                .catch(err => {
+                    alert("連線錯誤：" + err);
+                    resetBtn();
+                });
+            }
+        }
+
+        function showBatchResults(winners) {
+            const modal = document.getElementById('batchModal');
+            const grid = document.getElementById('batchGrid');
+            const title = document.getElementById('batchTitle');
+            
+            title.innerText = `${currentPrize} - 中獎名單 (${winners.length}名)`;
+            grid.innerHTML = "";
+            
+            winners.forEach((num, index) => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.innerText = num;
+                div.style.animationDelay = `${Math.min(index * 0.03, 2)}s`; 
+                grid.appendChild(div);
+            });
+            modal.style.display = 'flex';
+        }
+
+        function closeBatchModal() {
+            document.getElementById('batchModal').style.display = 'none';
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('drawBtn');
+            btn.innerText = "開始抽獎";
+            btn.disabled = false;
+            isRolling = false;
+        }
+
+        function speak(text) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'zh-TW';
+            window.speechSynthesis.speak(u);
+        }
+    </script>
+</body>
+</html>
