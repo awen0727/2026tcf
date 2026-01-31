@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>即時中獎名單</title>
+    <title>即時中獎名單 (V5.2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden relative">
+        <div class="absolute top-2 right-2 text-xs text-white opacity-50">V5.2</div>
         <div class="bg-red-800 text-white p-4 text-center">
             <h1 class="text-2xl font-bold">中獎榮譽榜</h1>
-            <p class="text-sm opacity-80 mt-1">即時更新</p>
         </div>
         
         <div class="p-4 border-b">
@@ -23,12 +23,11 @@
     </div>
 
     <script>
-        // ★ 新網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbzWdNQ1THBAFUORM5qobrZZq-vGAilJE7rYE0NwjGVWBEg_xQt1yDdqcIYUvV2vAp_4/exec";
+        // ★ 更新後的後台網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbx7H9a0eVTLrROF-XBy6oXb2VYMUTaaKzPi2wmQ-lZIUkEVSsYGesCe270nXCG5hOdt/exec";
         
         let allWinners = [];
 
-        // Dashboard 繼續使用 getData 模式
         function loadData() {
             fetch(API_URL + '?op=getData')
                 .then(res => res.json())
@@ -65,7 +64,7 @@
             renderList(filtered);
         }
 
-        setInterval(loadData, 5000); // 每 5 秒更新
+        setInterval(loadData, 5000); 
         loadData();
     </script>
 </body>
