@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>直播特效頁 - 獅子會抽獎</title>
+    <title>OBS 直播看板 - 獅子會抽獎</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -14,144 +14,184 @@
             font-family: "Microsoft JhengHei", sans-serif;
             overflow: hidden; 
             height: 100vh;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
         }
 
-        /* 左側大數字特效 */
-        .big-num {
-            font-family: 'Oswald', sans-serif;
-            font-size: 10rem;
-            color: #fff;
-            text-shadow: 4px 4px 0 #000;
-            line-height: 1;
-        }
-        .prize-title {
-            color: #ffd700;
-            text-shadow: 2px 2px 0 #000;
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        /* 右側列表樣式 */
-        .list-container {
-            background: rgba(0, 0, 0, 0.6); /* 半透明黑底，方便閱讀 */
-            border-radius: 15px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            height: 90vh;
-            overflow: hidden;
+        /* 左側：主舞台 (顯示最新那一批結果) */
+        .main-stage {
+            flex: 3; /* 佔據 3/4 空間 */
+            background: rgba(0, 0, 0, 0.8);
+            border: 4px solid #ffd700;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            position: relative;
         }
-        .list-header {
+
+        .stage-header {
+            background: linear-gradient(to bottom, #8b0000, #500000);
+            color: #ffd700;
+            padding: 15px;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            border-bottom: 2px solid #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .stage-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            align-content: center;
+        }
+
+        /* 單一大獎樣式 */
+        .single-winner {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14rem;
+            color: #fff;
+            text-shadow: 0 0 20px #ffd700;
+            animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 批量名單格狀樣式 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 15px;
+            width: 100%;
+        }
+        .grid-item {
             background: #8b0000;
             color: white;
-            padding: 15px;
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
             text-align: center;
-            border-bottom: 2px solid gold;
+            padding: 5px;
+            border-radius: 8px;
+            border: 1px solid #ffaa00;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            animation: popIn 0.4s ease-out backwards;
         }
-        .list-body {
-            overflow-y: auto;
-            padding: 10px;
-            flex-grow: 1;
-        }
-        /* 隱藏捲軸但保留功能 */
-        .list-body::-webkit-scrollbar { width: 0px; }
 
-        /* 單筆名單卡片 */
-        .winner-card {
+        /* 右側：歷史側邊欄 */
+        .sidebar {
+            flex: 1; /* 佔據 1/4 空間 */
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sidebar-header {
+            background: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .sidebar-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 10px;
+        }
+        .history-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             background: rgba(255, 255, 255, 0.9);
-            margin-bottom: 10px;
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            animation: slideIn 0.5s ease-out;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            border-left: 5px solid #8b0000;
         }
-        .w-prize { color: #8b0000; font-weight: bold; font-size: 1.2rem; }
-        .w-num { font-family: 'Oswald', sans-serif; font-size: 1.5rem; color: #000; }
-        .w-time { font-size: 0.8rem; color: #666; }
 
-        @keyframes slideIn {
-            from { transform: translateX(50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
+        /* 隱藏捲軸 */
+        ::-webkit-scrollbar { width: 0px; }
+
+        @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body class="p-10 flex gap-10 items-center justify-center">
+<body>
 
-    <div class="w-2/3 flex flex-col justify-center items-center text-center">
-        <div class="bg-black/20 p-10 rounded-3xl backdrop-blur-sm border border-white/20 shadow-2xl">
-            <div class="text-white text-2xl mb-2 opacity-80">Latest Winner</div>
-            <div id="latestPrize" class="prize-title">等待開獎...</div>
-            <div id="latestNum" class="big-num">------</div>
-            <div id="latestTime" class="text-white mt-4 text-xl"></div>
+    <div class="main-stage">
+        <div id="stageTitle" class="stage-header">等待開獎...</div>
+        <div id="stageContent" class="stage-content">
+            <div class="text-gray-400 text-2xl">系統連線中...</div>
         </div>
     </div>
 
-    <div class="w-1/3">
-        <div class="list-container">
-            <div class="list-header">🏆 中獎榮譽榜</div>
-            <div id="winnerList" class="list-body">
-                </div>
-        </div>
+    <div class="sidebar">
+        <div class="sidebar-header">📜 近期紀錄</div>
+        <div id="historyList" class="sidebar-list">
+            </div>
     </div>
 
     <script>
-        // 使用您最新的 V2.0 網址
+        // V2.0 新網址
         const API_URL = "https://script.google.com/macros/s/AKfycbw3MrRTCbh_Zw-wjeTUmgwEPMN9ifFUnXTXd3k8z_VA5XZy_e6mQ4GMAesaec6rUk60/exec";
         
-        let lastDataLength = 0; // 用來偵測有沒有新資料
+        let lastUpdateTime = ""; 
 
-        // 每 3 秒自動更新一次
-        setInterval(updateData, 3000);
-        updateData(); // 頁面載入時先執行一次
+        // 每 2 秒更新一次
+        setInterval(updateData, 2000);
+        updateData();
 
         async function updateData() {
             try {
-                // 使用 op=getData 參數抓取所有中獎名單
                 const res = await fetch(API_URL + '?op=getData');
                 const data = await res.json();
 
                 if (!Array.isArray(data) || data.length === 0) return;
 
-                // 更新左側大字 (最新的那一筆)
-                const latest = data[0]; // 因為後端已經排過序，第0筆就是最新的
-                document.getElementById('latestPrize').innerText = latest.prize;
-                document.getElementById('latestNum').innerText = latest.num;
-                document.getElementById('latestTime').innerText = `開獎時間: ${latest.time}`;
+                // 1. 找出「最新一批」的中獎者 (依據時間判斷)
+                const latestTime = data[0].time;
+                const latestPrize = data[0].prize;
+                
+                // 篩選出所有時間跟最新一筆相同的人 (視為同一批次)
+                // 這裡稍微寬容一點，如果時間只差 1-2 秒也算同一批
+                const currentBatch = data.filter(item => item.time === latestTime && item.prize === latestPrize);
+                
+                // 剩下的就是歷史紀錄
+                const historyData = data.slice(currentBatch.length);
 
-                // 如果資料變多了，代表有新中獎者，重新渲染列表
-                if (data.length !== lastDataLength) {
-                    renderList(data);
-                    lastDataLength = data.length;
+                // 2. 更新主舞台 (只有當資料有變動時才重繪，避免一直閃爍)
+                if (latestTime !== lastUpdateTime) {
+                    renderStage(latestPrize, currentBatch);
+                    lastUpdateTime = latestTime;
                 }
+
+                // 3. 永遠更新側邊欄 (保持最新)
+                renderSidebar(historyData);
 
             } catch (err) {
                 console.error("更新失敗", err);
             }
         }
 
-        function renderList(data) {
-            const list = document.getElementById('winnerList');
-            list.innerHTML = ""; // 清空舊的
+        function renderStage(prizeName, winners) {
+            const title = document.getElementById('stageTitle');
+            const content = document.getElementById('stageContent');
+            
+            title.innerText = `${prizeName} (共${winners.length}名)`;
+            content.innerHTML = "";
 
-            data.forEach(item => {
+            if (winners.length === 1) {
+                // 單人模式：顯示超大數字
                 const div = document.createElement('div');
-                div.className = 'winner-card';
-                div.innerHTML = `
-                    <div>
-                        <div class="w-prize">${item.prize}</div>
-                        <div class="w-time">${item.time}</div>
-                    </div>
-                    <div class="w-num">${item.num}</div>
-                `;
-                list.appendChild(div);
-            });
-        }
-    </script>
-</body>
-</html>
+                div.className = 'single-winner';
+                div.innerText = winners[0].num;
+                content.appendChild(div);
+            } else {
