@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V6.1</title>
+    <title>活動看板 V6.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -16,6 +16,7 @@
             color: white;
         }
 
+        /* 舞台區塊 */
         .stage {
             width: 90%; max-width: 1400px;
             background: rgba(255, 255, 255, 0.05);
@@ -29,35 +30,38 @@
             position: relative;
         }
 
+        /* 獎項標題 */
         .prize-title {
             font-size: 5rem; font-weight: bold; color: #ffd700;
             text-shadow: 3px 3px 0px #8b0000;
             margin-bottom: 20px; letter-spacing: 2px;
         }
 
+        /* 內容容器 */
         .content-area {
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
+        /* === 模式 A：單人中獎 (顯示號碼) === */
         .big-number {
             font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
             text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        /* === 模式 B：多人中獎 (不顯示號碼，只顯示賀詞) === */
         .batch-msg {
-            font-size: 4rem; color: white; font-weight: bold;
-            background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
-            border: 2px solid rgba(255, 215, 0, 0.5);
+            font-size: 5rem; color: white; font-weight: bold;
+            background: rgba(0,0,0,0.4); padding: 30px 80px; border-radius: 20px;
+            border: 3px solid #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
             animation: fadeIn 0.8s;
         }
         
-        .error-msg {
-            font-size: 2rem; color: #ff4444; background: rgba(0,0,0,0.8);
-            padding: 10px 20px; border: 1px solid red; border-radius: 10px;
-        }
-
-        .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 20px; }
+        .sub-text { font-size: 2.5rem; color: #ffeb3b; margin-top: 30px; font-weight: bold; }
+        
+        /* 錯誤/等待訊息 */
+        .error-msg { font-size: 2rem; color: #ff4444; background: rgba(0,0,0,0.8); padding: 10px 20px; border: 1px solid red; border-radius: 10px; }
         .waiting { color: rgba(255,255,255,0.3); font-size: 3rem; animation: pulse 2s infinite; }
         .version { position: absolute; bottom: 10px; right: 10px; opacity: 0.3; font-size: 0.9rem; font-family: monospace; }
 
@@ -67,7 +71,7 @@
     </style>
 </head>
 <body>
-    <div class="version">System V6.1</div>
+    <div class="version">System V6.2 (No Batch Num)</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -77,11 +81,12 @@
     </div>
 
     <script>
-        // ★ 新網址
+        // 您最新的後台網址
         const API_URL = "https://script.google.com/macros/s/AKfycbxwEld6cddUmHShvDNOuZxqeJCIsjxPNwWHdjJovk2OA2nK2yv8LRDelvqqxXcj1BGh/exec";
         
         let lastUpdateKey = ""; 
 
+        // 每 1.5 秒檢查一次
         setInterval(checkLatest, 1500);
 
         async function checkLatest() {
@@ -89,8 +94,9 @@
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
+                // 防呆：確認版本
                 if (Array.isArray(data)) {
-                    document.getElementById('contentArea').innerHTML = `<div class="error-msg">⚠️ 後台未發布新版本</div>`;
+                    document.getElementById('contentArea').innerHTML = `<div class="error-msg">⚠️ 後台版本過舊，請重新部署</div>`;
                     return;
                 }
 
@@ -115,12 +121,15 @@
             title.innerText = data.prize;
             content.innerHTML = "";
 
+            // ★ 關鍵邏輯：如果是複數獎 (count > 1)，絕對不顯示號碼
             if (data.count > 1) {
                 content.innerHTML = `
                     <div class="batch-msg">🎉 恭喜獲獎</div>
                     <div class="sub-text">共 ${data.count} 位得主</div>
+                    <div style="font-size: 1.2rem; color: #aaa; margin-top: 10px;">(名單請見總覽看板)</div>
                 `;
             } else {
+                // 單人獎：才顯示大號碼
                 content.innerHTML = `
                     <div class="big-number">${data.num}</div>
                     <div class="sub-text">🎉 恭喜中獎</div>
