@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動看板 V5.0 (Final)</title>
+    <title>活動看板 V5.1 (Stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
@@ -39,14 +39,14 @@
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* 顯示單一號碼 */
+        /* 單抽大數字 */
         .big-number {
             font-family: 'Oswald', sans-serif; font-size: 16rem; color: white;
             text-shadow: 0 0 40px #ffd700; line-height: 1;
             animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 顯示批量訊息 */
+        /* 批量訊息 (卡頓救星) */
         .batch-msg {
             font-size: 4rem; color: white; font-weight: bold;
             background: rgba(0,0,0,0.3); padding: 20px 60px; border-radius: 20px;
@@ -71,7 +71,7 @@
     </style>
 </head>
 <body>
-    <div class="version">System V5.0 (Stable)</div>
+    <div class="version">System V5.1</div>
 
     <div class="stage">
         <div id="prizeTitle" class="prize-title">活動準備中</div>
@@ -81,7 +81,7 @@
     </div>
 
     <script>
-        // 您的後台網址
+        // ★ 您的新網址
         const API_URL = "https://script.google.com/macros/s/AKfycbzWdNQ1THBAFUORM5qobrZZq-vGAilJE7rYE0NwjGVWBEg_xQt1yDdqcIYUvV2vAp_4/exec";
         
         let lastUpdateKey = ""; 
@@ -95,12 +95,12 @@
                 const res = await fetch(API_URL + '?op=getLatest');
                 const data = await res.json();
 
-                // ★ 防呆檢測：如果回傳的是陣列(Array)，代表後台還是舊版！
+                // 防呆：如果後台回傳陣列，代表後台版本還是舊的
                 if (Array.isArray(data)) {
                     document.getElementById('prizeTitle').innerText = "系統警告";
                     document.getElementById('contentArea').innerHTML = `
-                        <div class="error-msg">⚠️ 後台未更新</div>
-                        <div class="text-xl mt-4">請至 Google Script 重新部署 (建立新版本)</div>
+                        <div class="error-msg">⚠️ 後台版本異常</div>
+                        <div class="text-xl mt-4">請確認已發布 New Version</div>
                     `;
                     return;
                 }
